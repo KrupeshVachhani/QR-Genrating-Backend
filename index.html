@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #qrResult {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #qrImage {
+            max-width: 300px;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+
+        #downloadBtn {
+            background-color: #2196F3;
+            margin-top: 10px;
+            display: none;
+        }
+
+        #downloadBtn:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>QR Code Generator</h1>
+
+        <div class="form-group">
+            <label for="qrText">Enter text or URL:</label>
+            <input type="text" id="qrText" placeholder="Enter text to generate QR code">
+        </div>
+
+        <div class="form-group">
+            <label for="errorCorrection">Error Correction Level:</label>
+            <select id="errorCorrection">
+                <option value="L">Low (L)</option>
+                <option value="M">Medium (M)</option>
+                <option value="Q">Quartile (Q)</option>
+                <option value="H" selected>High (H)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="margin">Margin:</label>
+            <input type="number" id="margin" value="4" min="0" max="10">
+        </div>
+
+        <div class="form-group">
+            <label>Colors:</label>
+            <div>
+                <label for="darkColor">Dark Color:</label>
+                <input type="color" id="darkColor" value="#000000">
+            </div>
+            <div>
+                <label for="lightColor">Light Color:</label>
+                <input type="color" id="lightColor" value="#FFFFFF">
+            </div>
+        </div>
+
+        <button onclick="generateQR()">Generate QR Code</button>
+
+        <div id="qrResult">
+            <img id="qrImage" style="display: none;">
+            <div id="errorMessage" class="error"></div>
+            <button id="downloadBtn" onclick="downloadQR()">Download QR Code</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://qr-genrating-backend.onrender.com/api/qr/generate';
+
+        async function generateQR() {
+            const text = document.getElementById('qrText').value;
+            const errorCorrection = document.getElementById('errorCorrection').value;
+            const margin = parseInt(document.getElementById('margin').value);
+            const darkColor = document.getElementById('darkColor').value;
+            const lightColor = document.getElementById('lightColor').value;
+
+            const errorMessage = document.getElementById('errorMessage');
+            const qrImage = document.getElementById('qrImage');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if (!text) {
+                errorMessage.textContent = 'Please enter text or URL';
+                qrImage.style.display = 'none';
+                downloadBtn.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: text,
+                        options: {
+                            errorCorrectionLevel: errorCorrection,
+                            margin: margin,
+                            color: {
+                                dark: darkColor,
+                                light: lightColor
+                            }
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+
+                qrImage.src = imageUrl;
+                qrImage.style.display = 'block';
+                downloadBtn.style.display = 'inline-block';
+                errorMessage.textContent = '';
+
+            } catch (error) {
+                errorMessage.textContent = 'Error generating QR code: ' + error.message;
+                qrImage.style.display = 'none';
+                downloadBtn.style.display = 'none';
+            }
+        }
+
+        function downloadQR() {
+            const qrImage = document.getElementById('qrImage');
+            const text = document.getElementById('qrText').value;
+
+            const link = document.createElement('a');
+            link.download = `qr-code-${text.substring(0, 20)}.png`;
+            link.href = qrImage.src;
+            link.click();
+        }
+    </script>
+</body>
+
+</html>
